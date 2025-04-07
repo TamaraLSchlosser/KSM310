@@ -73,7 +73,7 @@ sst_smooth= uniform_filter1d(sst_values, size=12, axis=1,mode='nearest')
 sst_lowpass=gaussian_filter1d(sst_values, sigma=10, axis=1)
 
 #%% for seminar
-plt.figure(figsize=(16,6))
+plt.figure(figsize=(8,3))
 plt.plot(time, sst_values[0,:], label="raw",linewidth=2)
 plt.plot(time, sst_smooth[0,:], label="smoothed",linewidth=4)
 plt.plot(time, sst_lowpass[0,:], label="filter",linewidth=4)
@@ -85,6 +85,21 @@ plt.xlim(time[0], time[-1])
 plt.savefig("Byron_SST.jpg", dpi=600, quality=95, bbox_inches='tight')
 
 # I like the filtered result so I'll use that
+
+#%% Compute the long-term trend over last 30 years
+trends = np.zeros(nloc)
+for ii in range(nloc):
+    trend = np.polyfit(year, sst_lowpass[ii,:], 1)  # Linear trend (slope, intercept)
+    trends[ii]=trend[0] # deg C/year
+
+#%% thermal stress
+thermal_stress_temp = np.percentile(sst_values, 95,axis=1) # SST threshold for thermal stress
+
+plt.figure(figsize=(6,3))
+for ii,loc in enumerate(locations):
+    plt.plot(time, sst_values[ii,:], label=loc["name"])
+    stress_ind=sst_values[ii,:]>thermal_stress_temp[ii]
+    plt.scatter(time[stress_ind],sst_values[ii,stress_ind],marker='x',c='red',label="stress")
 
 #%% Fitting Auto-Regressive (AR1) model to SST data
 # generate the future 10 years time variable
@@ -113,7 +128,7 @@ for i, coeff in enumerate(ar1_coefficients):
 start_date = datetime(1992, 1, 1)
 end_date = datetime(2022, 1, 1)
 
-plt.figure(figsize=(8, 6))
+plt.figure(figsize=(6, 4))
 for ii, loc in enumerate(locations):
     plt.plot(time, sst_values[ii, :], label=loc["name"])  # Plot SST for each location
 
@@ -133,8 +148,14 @@ plt.grid(True)
 plt.tight_layout()
 plt.show()
 
-#%% tips
+#%% What if we used a higher-order AR model? Like n10 order?
+predictions10y = np.full((3,n10),np.nan)
+alphas = np.full((3,n10),np.nan)
 
-# other functions that might be helpful: 
-# np.polyfit - can fit line/polygon to data, defining "order" of fitted line/curve
-# np.percentile - find 95th percentile
+for ii in range(sst_values.shape[0]):
+    model = AutoReg(sst_lowpass[ii,:], lags=n10)
+    model_fitted = model.fit()
+    prediction = model_fitted.predict(start=len(time),end=len(time)+n10-1)  # Predict for the next 10 years
+    predictions10y[ii,:]=prediction
+    alphas[ii,:] = model_fitted.params[1:] 
+
