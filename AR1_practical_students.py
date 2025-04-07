@@ -10,7 +10,7 @@ get_ipython().run_line_magic('reset', '-f')
 
 import matplotlib.pyplot as plt
 import numpy as np
-import netCDF4 as nc
+import xarray as xr
 from datetime import datetime
 from statsmodels.tsa.ar_model import AutoReg
 from scipy.ndimage import uniform_filter1d,gaussian_filter1d
@@ -18,17 +18,14 @@ from scipy.ndimage import uniform_filter1d,gaussian_filter1d
 #%% Read SST and pick out locations of interest
 # Open the netCDF file and read the SST data
 file_path = "sst.mnmean.nc"  # Uploaded into Data folder in the File Browser window
-dataset = nc.Dataset(file_path)
+dataset = xr.open_dataset(file_path,decode_times=True)
 
 # Extract latitude, longitude, and SST variables
-lats = np.array(dataset.variables['lat'][:])
-lons = np.array(dataset.variables['lon'][:])
-sst = np.array(dataset.variables['sst'][:]) # time, lat, lon
+lats = dataset['lat'].values
+lons = dataset['lon'].values
+sst = dataset['sst'].values # time, lat, lon
 
-time = dataset.variables['time'][:] # days since 1800-1-1 00:00:00
-time_unit = dataset.variables["time"].getncattr('units') # first read the 'units' attributes from the variable time
-time=np.array(nc.num2date(time, time_unit))#
-time = np.array([t.strftime("%Y-%m-%d") for t in time], dtype="datetime64")
+time = dataset['time'].values
 
 # Debug: Check the converted time
 print("Converted time example:", time[:5])
@@ -86,6 +83,32 @@ plt.savefig("Byron_SST.jpg", dpi=600, quality=95, bbox_inches='tight')
 
 # I like the filtered result so I'll use that
 
+
+#%% Plot the SST values for the locations
+# Define the x-axis limits (use datetime objects for time)
+start_date = datetime(1992, 1, 1)
+end_date = datetime(2022, 1, 1)
+
+plt.figure(figsize=(6, 4))
+for ii, loc in enumerate(locations):
+    plt.plot(time, sst_values[ii, :], label=loc["name"])  # Plot SST for each location
+
+# Set x-axis limits
+plt.xlim(start_date, end_date)
+
+plt.title("Sea Surface Temperature (SST) at Selected Locations")
+plt.ylabel("SST (°C)")
+plt.xlabel("year")
+
+# Rotate date labels for better visibility
+plt.gcf().autofmt_xdate()
+
+#plt.grid(axis="y", linestyle="--", alpha=0.7)
+plt.legend(title="Locations",loc="upper left", fontsize=10)
+plt.grid(True)
+plt.tight_layout()
+plt.show()
+
 #%% Compute the long-term trend over last 30 years
 trends = np.zeros(nloc)
 for ii in range(nloc):
@@ -122,31 +145,6 @@ for ii in range(sst_values.shape[0]):
 for i, coeff in enumerate(ar1_coefficients):
     print(f"Location {i+1}: AR1 Coefficient = {coeff}")
 
-
-#%% Plot the SST values for the locations
-# Define the x-axis limits (use datetime objects for time)
-start_date = datetime(1992, 1, 1)
-end_date = datetime(2022, 1, 1)
-
-plt.figure(figsize=(6, 4))
-for ii, loc in enumerate(locations):
-    plt.plot(time, sst_values[ii, :], label=loc["name"])  # Plot SST for each location
-
-# Set x-axis limits
-plt.xlim(start_date, end_date)
-
-plt.title("Sea Surface Temperature (SST) at Selected Locations")
-plt.ylabel("SST (°C)")
-plt.xlabel("year")
-
-# Rotate date labels for better visibility
-plt.gcf().autofmt_xdate()
-
-#plt.grid(axis="y", linestyle="--", alpha=0.7)
-plt.legend(title="Locations",loc="upper left", fontsize=10)
-plt.grid(True)
-plt.tight_layout()
-plt.show()
 
 #%% What if we used a higher-order AR model? Like n10 order?
 predictions10y = np.full((3,n10),np.nan)
