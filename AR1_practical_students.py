@@ -111,9 +111,22 @@ plt.show()
 
 #%% Compute the long-term trend over last 30 years
 trends = np.zeros(nloc)
+fitted = np.full((nloc,len(year)),np.nan)
 for ii in range(nloc):
     trend = np.polyfit(year, sst_lowpass[ii,:], 1)  # Linear trend (slope, intercept)
     trends[ii]=trend[0] # deg C/year
+    fitted[ii,:]=np.polyval(trend, year)
+
+# Output trend values
+for ii, trends in enumerate(trends):
+    print(f"Location {ii+1}: 30-year trend = {trends}")
+
+# plot trend lines
+plt.figure(figsize=(6, 4))
+for ii, loc in enumerate(locations):
+    plt.plot(time, sst_values[ii, :], label=loc["name"])  # Plot SST for each location
+    plt.plot(time,fitted[ii,:],'--')
+
 
 #%% thermal stress
 thermal_stress_temp = np.percentile(sst_values, 95,axis=1) # SST threshold for thermal stress
@@ -121,6 +134,7 @@ thermal_stress_temp = np.percentile(sst_values, 95,axis=1) # SST threshold for t
 plt.figure(figsize=(6,3))
 for ii,loc in enumerate(locations):
     plt.plot(time, sst_values[ii,:], label=loc["name"])
+    # now add a red cross for thermal stress events
     stress_ind=sst_values[ii,:]>thermal_stress_temp[ii]
     plt.scatter(time[stress_ind],sst_values[ii,stress_ind],marker='x',c='red',label="stress")
 
@@ -145,6 +159,11 @@ for ii in range(sst_values.shape[0]):
 for i, coeff in enumerate(ar1_coefficients):
     print(f"Location {i+1}: AR1 Coefficient = {coeff}")
 
+# Plot the predictions
+plt.figure(figsize=(8, 3))
+for ii in range(sst_values.shape[0]):
+    plt.plot(time, sst_lowpass[ii,:], label=f"Location {ii+1}")
+    plt.plot(future10, predictions1[ii,:], label=f"Prediction AR1 {ii+1}", linestyle='--')
 
 #%% What if we used a higher-order AR model? Like n10 order?
 predictions10y = np.full((3,n10),np.nan)
