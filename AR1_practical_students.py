@@ -146,13 +146,35 @@ time_diff_median = np.median(np.diff(time))
 future10 = np.arange(time[-1]+time_diff_median, time[-1]+time_diff_median*(n10+1),time_diff_median)
 
 # Fit the AR1 model and predict for the next n10 years
-predictions1 = np.full((3,n10),np.nan)
+predictions1 = np.full((nloc,n10),np.nan)
 ar1_coefficients = []
+
+# Let's also save xi so we can see how the 'forcing' impacts our prediction
+rng = np.random.default_rng()  # Optional: set seed for reproducibility seed=42
+increase_noise=2 # feel free to change this if you want more 'oscillatory' results
+xi=np.full((nloc,n10),np.nan) # our noise/forcing
+
 for ii in range(sst_values.shape[0]):
+    # fit easing least-squares
     model = AutoReg(sst_lowpass[ii,:], lags=1)
     model_fitted = model.fit()
-    prediction = model_fitted.predict(start=len(time),end=len(time)+n10-1)  # Predict for the next 10 years
-    predictions1[ii,:]=prediction
+    
+    intercept = model_fitted.params[0]
+    alpha = model_fitted.params[1]  # AR1 coefficient
+    residual_std = np.std(model_fitted.resid)# residual standard deviation, used to scale noise/forcing/xi
+    
+    # Initialize prediction array
+    pred = np.zeros(n10)
+    # define our xi or forcing
+    xi[ii,:]=residual_std * rng.normal(size=n10) * increase_noise
+    # find first forecasted value
+    pred[0] = alpha * sst_lowpass[ii, -1] + intercept + xi[ii,0]
+
+    # forecast next 10 years
+    for tt in range(1, n10):
+        pred[tt] = alpha * pred[tt-1] + intercept + xi[ii,tt-1]
+
+    predictions1[ii, :] = pred.copy()
     ar1_coefficients.append(model_fitted.params[1])  # AR1 coefficient is the lag parameter
 
 # Output AR1 coefficients
@@ -164,6 +186,7 @@ plt.figure(figsize=(8, 3))
 for ii in range(sst_values.shape[0]):
     plt.plot(time, sst_lowpass[ii,:], label=f"Location {ii+1}")
     plt.plot(future10, predictions1[ii,:], label=f"Prediction AR1 {ii+1}", linestyle='--')
+    
 
 #%% What if we used a higher-order AR model? Like n10 order?
 predictions10y = np.full((3,n10),np.nan)
