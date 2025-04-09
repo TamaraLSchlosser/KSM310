@@ -151,7 +151,7 @@ ar1_coefficients = []
 
 # Let's also save xi so we can see how the 'forcing' impacts our prediction
 rng = np.random.default_rng()  # Optional: set seed for reproducibility seed=42
-increase_noise=2 # feel free to change this if you want more 'oscillatory' results
+increase_noise=10 # feel free to change this if you want more 'oscillatory' results
 xi=np.full((nloc,n10),np.nan) # our noise/forcing
 
 for ii in range(sst_values.shape[0]):
@@ -186,8 +186,32 @@ plt.figure(figsize=(8, 3))
 for ii in range(sst_values.shape[0]):
     plt.plot(time, sst_lowpass[ii,:], label=f"Location {ii+1}")
     plt.plot(future10, predictions1[ii,:], label=f"Prediction AR1 {ii+1}", linestyle='--')
-    
+  
+#%% Alternatively lets have a play with different alpha values!
+# using same xi (noise/forcing) as previous but feel free to modify
+alpha_set=.9
+predictions_setalpha = np.full((nloc,n10),np.nan)
 
+for ii in range(sst_values.shape[0]):
+     # Initialize prediction array for this location
+    pred = np.zeros(n10)
+    
+    # remove mean SST
+    AR_sst=sst_lowpass[ii,:]-np.mean(sst_lowpass[ii,:])
+    
+    pred[0] = alpha_set * AR_sst[-1] + xi[ii,0]
+
+    # forecast next 10 years
+    for tt in range(1, n10):
+        pred[tt] = alpha_set * pred[tt-1] + xi[ii,tt-1]
+    predictions_setalpha[ii, :] = pred.copy()+np.mean(sst_lowpass[ii,:])
+        
+# Plot the predictions
+plt.figure(figsize=(8, 3))
+for ii in range(sst_values.shape[0]):
+    plt.plot(time, sst_lowpass[ii,:], label=f"Location {ii+1}")
+    plt.plot(future10, predictions_setalpha[ii,:], label=f"Prediction AR1 {ii+1}", linestyle='--')
+    
 #%% What if we used a higher-order AR model? Like n10 order?
 predictions10y = np.full((3,n10),np.nan)
 alphas = np.full((3,n10),np.nan)
