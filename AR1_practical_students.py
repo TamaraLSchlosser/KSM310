@@ -79,7 +79,7 @@ plt.xlabel('Year')
 plt.ylabel('Sea Surface Temperature (°C)')
 plt.tight_layout()
 plt.xlim(time[0], time[-1])
-plt.savefig("Byron_SST.jpg", dpi=600, quality=95, bbox_inches='tight')
+plt.savefig("Byron_SST.jpg", dpi=600, bbox_inches='tight')
 
 # I like the filtered result so I'll use that
 
