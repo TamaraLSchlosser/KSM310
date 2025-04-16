@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-Created on Tue Jan 14 16:17:39 2025
+Written by T Schlosser and Y Wang
 
 @author: tamaras9
 """
@@ -352,8 +352,11 @@ for ii, loc in enumerate(locations):
     ax2.set_ylim(-ymax,ymax)
     ax2.set_xlim(time[0],time[-1])
     
+    # correlation
+    Rtmp=np.corrcoef(sst_anom_loc[ii,0:-10],Nino3_index)
+    
     # Title for each subplot
-    ax1.set_title(f"SST Anomaly at {loc['name']} vs Nino3")
+    ax1.set_title(f"SST Anomaly at {loc['name']} vs Nino3, R={Rtmp[0,1]:.2f}")
 
 # Shared x-label
 plt.xlabel("time")
@@ -366,9 +369,9 @@ plt.show()
 fig, axes = plt.subplots(len(locations), sharex=True, figsize=(10, 6))
 
 # Check EOF*_PC.jpg then update accordingly. The dimensions are location x mode number
-PC_sign=np.array([[1, 1, 1],
-                    [1, 1, 1],
-                    [1, 1, 1]])
+PC_sign=np.array([[1, 1, 1],#Ning
+                    [1, 1, 1],#GBR
+                    [1, 1, 1]])#Gal
 
 for ii, loc in enumerate(locations):
     ax1 = axes[ii]                        # Left y-axis (SST anomaly)
@@ -386,8 +389,8 @@ for ii, loc in enumerate(locations):
     
     # Plot Nino3 index
     ax2.plot(time, PCs[:,0]*scale*PC_sign[ii,0], color='tab:red',label="mode-1")
-    ax2.plot(time, PCs[:,1]*scale*PC_sign[ii,0], color='tab:green',label="mode-2")
-    ax2.plot(time, PCs[:,2]*scale*PC_sign[ii,0], color='tab:purple',label="mode-3")
+    ax2.plot(time, PCs[:,1]*scale*PC_sign[ii,1], color='tab:green',label="mode-2")
+    ax2.plot(time, PCs[:,2]*scale*PC_sign[ii,2], color='tab:purple',label="mode-3")
     ax2.set_ylabel("PCs (°C)", color='black')
     ax2.tick_params(axis='y', labelcolor='black')
     ax2.legend(loc="upper left")
